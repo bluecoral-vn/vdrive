@@ -41,23 +41,12 @@ class UserTest extends TestCase
             ->assertJsonStructure(['data', 'meta']);
     }
 
-    public function test_regular_user_can_list_users_with_limited_fields(): void
+    public function test_regular_user_cannot_list_users(): void
     {
         $response = $this->actingAs($this->regularUser, 'api')
             ->getJson('/api/users');
 
-        $response->assertStatus(200)
-            ->assertJsonStructure(['data', 'meta']);
-
-        // Non-admin should only see id, name, email
-        $firstUser = $response->json('data.0');
-        $this->assertArrayHasKey('id', $firstUser);
-        $this->assertArrayHasKey('name', $firstUser);
-        $this->assertArrayHasKey('email', $firstUser);
-        $this->assertArrayNotHasKey('roles', $firstUser);
-        $this->assertArrayNotHasKey('status', $firstUser);
-        $this->assertArrayNotHasKey('quota_limit_bytes', $firstUser);
-        $this->assertArrayNotHasKey('quota_used_bytes', $firstUser);
+        $response->assertStatus(403);
     }
 
     public function test_admin_list_users_returns_full_fields(): void

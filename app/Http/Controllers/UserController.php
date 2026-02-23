@@ -72,9 +72,16 @@ class UserController extends Controller
     {
         $this->authorize('update', $user);
 
-        $user->update($request->safe()->only(['name', 'email', 'password', 'quota_limit_bytes']));
+        // Regular users can only update their own name, email, password.
+        // Admin-only fields (roles, quota) require 'users.update' permission.
+        $fields = ['name', 'email', 'password'];
+        if ($request->user()->hasPermission('users.update')) {
+            $fields[] = 'quota_limit_bytes';
+        }
 
-        if ($request->has('roles')) {
+        $user->update($request->safe()->only($fields));
+
+        if ($request->has('roles') && $request->user()->hasPermission('users.update')) {
             $user->roles()->sync($request->validated('roles'));
         }
 

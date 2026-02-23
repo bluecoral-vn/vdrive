@@ -17,6 +17,7 @@ use App\Services\ThumbnailService;
 use App\Services\TrashService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FileController extends Controller
@@ -180,7 +181,12 @@ class FileController extends Controller
             echo $result['Body'];
         }, 200, [
             'Content-Type' => $file->mime_type,
-            'Content-Disposition' => 'attachment; filename="' . $file->name . '"',
+            'Content-Disposition' => HeaderUtils::makeDisposition(
+                HeaderUtils::DISPOSITION_ATTACHMENT,
+                $file->name,
+                // ASCII fallback for non-ASCII filenames
+                preg_replace('/[^\x20-\x7E]/', '_', $file->name)
+            ),
             'Content-Length' => $file->size_bytes,
         ]);
     }

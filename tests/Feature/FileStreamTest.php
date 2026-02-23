@@ -114,7 +114,7 @@ class FileStreamTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertHeader('Content-Type', 'application/pdf');
-        $response->assertHeader('Content-Disposition', 'attachment; filename="report.pdf"');
+        $response->assertHeader('Content-Disposition', 'attachment; filename=report.pdf');
         $response->assertHeader('Content-Length', (string) $file->size_bytes);
     }
 
@@ -140,7 +140,7 @@ class FileStreamTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertHeader('Content-Type', 'image/jpeg');
-        $response->assertHeader('Content-Disposition', 'attachment; filename="image.jpg"');
+        $response->assertHeader('Content-Disposition', 'attachment; filename=image.jpg');
         $response->assertHeader('Content-Length', '512000');
     }
 
@@ -205,6 +205,6 @@ class FileStreamTest extends TestCase
             ->get("/api/files/{$file->id}/stream");
 
         $response->assertStatus(200);
-        $response->assertHeader('Content-Disposition', 'attachment; filename="报告 final.pdf"');
+        $response->assertHeader('Content-Disposition', 'attachment; filename="______ final.pdf"; filename*=utf-8\'\'%E6%8A%A5%E5%91%8A%20final.pdf');
     }
 }
