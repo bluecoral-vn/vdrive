@@ -74,8 +74,8 @@ class BrandingController extends Controller
         $branding['demo_mode'] = app()->environment('demo')
             ? [
                 'is_demo' => true,
-                'reset_interval_minutes' => 30,
-                'next_reset_at' => now()->ceilMinutes(30)->toIso8601String(),
+                'reset_interval_minutes' => 15,
+                'next_reset_at' => now()->ceilMinutes(15)->toIso8601String(),
             ]
             : null;
 

@@ -22,7 +22,7 @@ Schedule::call(function () {
 })->everyMinute()->name('database-backup-check')->withoutOverlapping();
 
 Schedule::command('demo:reset')
-    ->everyThirtyMinutes()
+    ->everyFifteenMinutes()
     ->when(fn () => app()->environment('demo'))
     ->withoutOverlapping()
     ->name('demo-reset');

@@ -129,7 +129,6 @@ return [
 
     'middleware' => [
         'api',
-        RestrictedDocsAccess::class,
     ],
 
     'extensions' => [],

@@ -43,7 +43,7 @@ class DemoReset extends Command
                 [
                     ['Files deleted', $stats['files_deleted']],
                     ['Folders deleted', $stats['folders_deleted']],
-                    ['R2 objects queued for deletion', $stats['r2_objects_queued']],
+                    ['R2 objects deleted', $stats['r2_objects_deleted']],
                     ['Users re-seeded', $stats['users_reseeded']],
                 ],
             );

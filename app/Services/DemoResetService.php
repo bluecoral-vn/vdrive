@@ -2,21 +2,25 @@
 
 namespace App\Services;
 
-use App\Jobs\DeleteR2ObjectJob;
 use App\Models\File;
+use App\Services\R2ClientService;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class DemoResetService
 {
+    public function __construct(
+        private R2ClientService $r2,
+    ) {}
+
     /**
      * Perform a full demo environment reset.
      *
-     * Deletes all uploaded files from R2 and database,
+     * Wipes ALL objects from R2 bucket and database,
      * then re-seeds the initial admin + user accounts.
      *
-     * @return array{r2_objects_queued: int, files_deleted: int, folders_deleted: int, users_reseeded: int}
+     * @return array{r2_objects_deleted: int, files_deleted: int, folders_deleted: int, users_reseeded: int}
      */
     public function reset(): array
     {
@@ -25,25 +29,14 @@ class DemoResetService
         }
 
         $stats = [
-            'r2_objects_queued' => 0,
+            'r2_objects_deleted' => 0,
             'files_deleted' => 0,
             'folders_deleted' => 0,
             'users_reseeded' => 0,
         ];
 
-        // Step 1 — Queue R2 object deletion for all files (object keys + thumbnails)
-        File::query()->chunkById(200, function ($files) use (&$stats): void {
-            foreach ($files as $file) {
-                if ($file->r2_object_key) {
-                    DeleteR2ObjectJob::dispatch($file->r2_object_key);
-                    $stats['r2_objects_queued']++;
-                }
-                if ($file->thumbnail_path) {
-                    DeleteR2ObjectJob::dispatch($file->thumbnail_path);
-                    $stats['r2_objects_queued']++;
-                }
-            }
-        });
+        // Step 1 — Wipe ALL objects from R2 bucket (including orphaned files)
+        $stats['r2_objects_deleted'] = $this->wipeR2Bucket();
 
         // Step 2 — Truncate all user-data tables (order: dependents first)
         $stats['files_deleted'] = File::query()->count();
@@ -79,5 +72,50 @@ class DemoResetService
         Log::info('Demo reset completed', $stats);
 
         return $stats;
+    }
+
+    /**
+     * Delete ALL objects from the R2 bucket.
+     *
+     * Uses listObjectsV2 pagination + deleteObjects batch API
+     * to wipe the entire bucket regardless of DB records.
+     */
+    private function wipeR2Bucket(): int
+    {
+        $client = $this->r2->client();
+        $bucket = $this->r2->bucket();
+        $deleted = 0;
+
+        $params = ['Bucket' => $bucket, 'MaxKeys' => 1000];
+
+        do {
+            $result = $client->listObjectsV2($params);
+            $objects = $result['Contents'] ?? [];
+
+            if (empty($objects)) {
+                break;
+            }
+
+            // Build batch delete payload
+            $deleteKeys = array_map(
+                fn ($obj) => ['Key' => $obj['Key']],
+                $objects,
+            );
+
+            $client->deleteObjects([
+                'Bucket' => $bucket,
+                'Delete' => [
+                    'Objects' => $deleteKeys,
+                    'Quiet' => true,
+                ],
+            ]);
+
+            $deleted += count($deleteKeys);
+
+            // Use continuation token for next page
+            $params['ContinuationToken'] = $result['NextContinuationToken'] ?? null;
+        } while ($result['IsTruncated'] ?? false);
+
+        return $deleted;
     }
 }
